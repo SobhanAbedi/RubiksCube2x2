@@ -212,29 +212,13 @@ def bi_bfs(init_state: npt.NDArray) -> List:
     expanded = 2
     turn: int = 1
     not_turn: int = 0
-    while True:
+    while expanded < 10000000:
         not_turn = turn
         turn = (turn + 1) % 2
         nxt_layer_number = fringe[turn][0].move_count + 1
         while fringe[turn][0].move_count < nxt_layer_number:
             cur_node = fringe[turn].popleft()
             explored += 1
-            key = cur_node.state.tobytes()
-            if key in seen[not_turn]:
-                print(f'{expanded} Nodes Expanded')
-                print(f'{explored} Nodes Explored')
-                frst: List[int] = []
-                scnd: List[int] = []
-                if turn == 0:
-                    frst = cur_node.path
-                    scnd = seen[1][key]
-                else:
-                    frst = seen[0][key]
-                    scnd = cur_node.path
-                scnd.reverse()
-                for i in range(len(scnd)):
-                    scnd[i] = ((scnd[i] + 5) % 12) + 1
-                return frst + scnd
             act_to_pass = 0
             if len(cur_node.path) > 0:
                 act_to_pass = ((cur_node.path[-1] + 5) % 12) + 1
@@ -248,6 +232,21 @@ def bi_bfs(init_state: npt.NDArray) -> List:
                 nxt_node_path = copy.copy(cur_node.path)
                 nxt_node_path.append(act)
                 seen[turn][key] = nxt_node_path
+                if key in seen[not_turn]:
+                    print(f'{expanded} Nodes Expanded')
+                    print(f'{explored} Nodes Explored')
+                    frst: List[int] = []
+                    scnd: List[int] = []
+                    if turn == 0:
+                        frst = nxt_node_path
+                        scnd = seen[1][key]
+                    else:
+                        frst = seen[0][key]
+                        scnd = nxt_node_path
+                    scnd.reverse()
+                    for i in range(len(scnd)):
+                        scnd[i] = ((scnd[i] + 5) % 12) + 1
+                    return frst + scnd
                 nxt_node = GraphNode(nxt_node_state, nxt_node_path, nxt_layer_number)
                 fringe[turn].append(nxt_node)
                 expanded += 1
