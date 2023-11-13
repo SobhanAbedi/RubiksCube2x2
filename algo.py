@@ -83,9 +83,11 @@ def bi_heuristic(location:npt.NDArray, turn: int):
 
 def ids_dfs(init_state: npt.NDArray) -> List:
     global SolvedStateHash, MaxMoves
+    if SolvedStateHash == hash(init_state.tobytes()):
+        print("Initial Cube was solved")
+        return []
     first_node = GraphNode(init_state, [], 0)
     for limit in range(1, MaxMoves + 1):
-        print(f'limit = {limit}')
         fringe = deque['GraphNode']()
         fringe.appendleft(first_node)
         # smaller than zero means expanded and larger than zero means still in the fringe
@@ -95,35 +97,38 @@ def ids_dfs(init_state: npt.NDArray) -> List:
         while len(fringe) > 0:
             explored += 1
             cur_node: GraphNode = fringe.popleft()
-            cur_node.move_count = seen[cur_node.state.tobytes()]
             seen[cur_node.state.tobytes()] = -cur_node.move_count
-            if SolvedStateHash == hash(cur_node.state.data.tobytes()):
-                print(f'{expanded} Nodes Expanded')
-                print(f'{explored} Nodes Explored')
-                return cur_node.path
-            if cur_node.move_count < limit:
-                nxt_node_move_count = cur_node.move_count + 1
-                act_to_pass = 0
-                if len(cur_node.path) > 0:
-                    act_to_pass = ((cur_node.path[-1] + 5) % 12) + 1
-                for act in range(1, 13):
-                    if act == act_to_pass:
+            nxt_node_move_count = cur_node.move_count + 1
+            act_to_pass = 0
+            if len(cur_node.path) > 0:
+                act_to_pass = ((cur_node.path[-1] + 5) % 12) + 1
+            for act in range(1, 13):
+                if act == act_to_pass:
+                    continue
+                nxt_node_state = next_state(cur_node.state, act)
+                key = nxt_node_state.tobytes()
+                if key in seen:
+                    val = seen[key]
+                    if val >= 0 or -val <= nxt_node_move_count:
                         continue
-                    nxt_node_state = next_state(cur_node.state, act)
-                    key = nxt_node_state.tobytes()
-                    if key in seen:
-                        val = seen[key]
-                        if val >= 0 or -val <= nxt_node_move_count:
-                            continue
-                    seen[key] = nxt_node_move_count
-                    nxt_node_path = copy.copy(cur_node.path)
-                    nxt_node_path.append(act)
+                nxt_node_path = copy.copy(cur_node.path)
+                nxt_node_path.append(act)
+                if SolvedStateHash == hash(nxt_node_state.tobytes()):
+                    print(f'{expanded} Nodes Expanded')
+                    print(f'{explored} Nodes Explored')
+                    return nxt_node_path
+                if nxt_node_move_count < limit:
                     nxt_node = GraphNode(nxt_node_state, nxt_node_path, nxt_node_move_count)
                     fringe.appendleft(nxt_node)
-                    expanded += 1
-                del cur_node
-        print(f'{expanded} Nodes Expanded')
-        print(f'{explored} Nodes Explored')
+                    seen[key] = nxt_node_move_count
+                else:
+                    seen[key] = -nxt_node_move_count
+                expanded += 1
+            del cur_node
+        del seen
+        del fringe
+    print(f'{expanded} Nodes Expanded')
+    print(f'{explored} Nodes Explored')
     print(f'No answers found with upto {MaxMoves} moves')
     return []
 
