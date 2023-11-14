@@ -81,19 +81,20 @@ def bi_heuristic(location:npt.NDArray, turn: int):
     return total_dist4
 
 
-def ids_dfs(init_state: npt.NDArray) -> List:
+def ids_dfs(init_state: npt.NDArray, silent: bool = False) -> List:
     global SolvedStateHash, MaxMoves
     if SolvedStateHash == hash(init_state.tobytes()):
-        print("Initial Cube was solved")
+        if not silent:
+            print("Initial Cube was solved")
         return []
     first_node = GraphNode(init_state, [], 0)
+    explored = 0
+    expanded = 1
     for limit in range(1, MaxMoves + 1):
         fringe = deque['GraphNode']()
         fringe.appendleft(first_node)
         # smaller than zero means expanded and larger than zero means still in the fringe
         seen: Dict = {first_node.state.tobytes(): 0}
-        explored = 0
-        expanded = 1
         while len(fringe) > 0:
             explored += 1
             cur_node: GraphNode = fringe.popleft()
@@ -114,8 +115,9 @@ def ids_dfs(init_state: npt.NDArray) -> List:
                 nxt_node_path = copy.copy(cur_node.path)
                 nxt_node_path.append(act)
                 if SolvedStateHash == hash(nxt_node_state.tobytes()):
-                    print(f'{expanded} Nodes Expanded')
-                    print(f'{explored} Nodes Explored')
+                    if not silent:
+                        print(f'{expanded} Nodes Expanded')
+                        print(f'{explored} Nodes Explored')
                     return nxt_node_path
                 if nxt_node_move_count < limit:
                     nxt_node = GraphNode(nxt_node_state, nxt_node_path, nxt_node_move_count)
@@ -127,13 +129,14 @@ def ids_dfs(init_state: npt.NDArray) -> List:
             del cur_node
         del seen
         del fringe
-    print(f'{expanded} Nodes Expanded')
-    print(f'{explored} Nodes Explored')
-    print(f'No answers found with upto {MaxMoves} moves')
+    if not silent:
+        print(f'{expanded} Nodes Expanded')
+        print(f'{explored} Nodes Explored')
+        print(f'No answers found with upto {MaxMoves} moves')
     return []
 
 
-def a_star(init_state: npt.NDArray, init_location: npt.NDArray) -> List:
+def a_star(init_state: npt.NDArray, init_location: npt.NDArray, silent: bool = False) -> List:
     global SolvedStateHash
     h = heuristic(init_location)
     first_node = GraphNodeAStar(h, False, init_state, init_location, [], 0, h)
@@ -155,8 +158,9 @@ def a_star(init_state: npt.NDArray, init_location: npt.NDArray) -> List:
         node_seen.node = None
         explored += 1
         if SolvedStateHash == hash(cur_node.state.data.tobytes()):
-            print(f'{expanded} Nodes Expanded')
-            print(f'{explored} Nodes Explored')
+            if not silent:
+                print(f'{expanded} Nodes Expanded')
+                print(f'{explored} Nodes Explored')
             return cur_node.path
         nxt_node_cost = cur_node.cost + 4
         act_to_pass = 0
@@ -166,9 +170,6 @@ def a_star(init_state: npt.NDArray, init_location: npt.NDArray) -> List:
             if act == act_to_pass:
                 continue
             nxt_node_state = next_state(cur_node.state, act)
-            nxt_node_location = next_location(cur_node.location, act)
-            nxt_node_path = copy.copy(cur_node.path)
-            nxt_node_path.append(act)
             key = nxt_node_state.tobytes()
             if key in seen:
                 node_seen: NodeSeen = seen[key]
@@ -176,6 +177,9 @@ def a_star(init_state: npt.NDArray, init_location: npt.NDArray) -> List:
                     # if node_seen.node is None:  # could be removed for production run
                     #     print("!!!Unexpected Error!!!")
                     #     quit()
+                    nxt_node_location = next_location(cur_node.location, act)
+                    nxt_node_path = copy.copy(cur_node.path)
+                    nxt_node_path.append(act)
                     node_seen.cost = nxt_node_cost
                     node_seen.node.removed = True
                     nxt_node = GraphNodeAStar(node_seen.node.heuristic + nxt_node_cost, False, nxt_node_state,
@@ -186,6 +190,9 @@ def a_star(init_state: npt.NDArray, init_location: npt.NDArray) -> List:
                     continue
                 elif node_seen.cost == 0 or -node_seen.cost <= nxt_node_cost:
                     continue
+            nxt_node_location = next_location(cur_node.location, act)
+            nxt_node_path = copy.copy(cur_node.path)
+            nxt_node_path.append(act)
             nxt_node_heuristic = heuristic(nxt_node_location)
             nxt_node = GraphNodeAStar(nxt_node_heuristic + nxt_node_cost, False, nxt_node_state,
                                       nxt_node_location, nxt_node_path, nxt_node_cost, nxt_node_heuristic)
@@ -193,13 +200,14 @@ def a_star(init_state: npt.NDArray, init_location: npt.NDArray) -> List:
             fringe.put(nxt_node)
             expanded += 1
         del cur_node
-    print(f'{expanded} Nodes Expanded')
-    print(f'{explored} Nodes Explored')
-    print(f'No answers found')
+    if not silent:
+        print(f'{expanded} Nodes Expanded')
+        print(f'{explored} Nodes Explored')
+        print(f'No answers found')
     return []
 
 
-def bi_bfs(init_state: npt.NDArray) -> List:
+def bi_bfs(init_state: npt.NDArray, silent: bool = False) -> List:
     global SolvedState
     first_node = GraphNode(init_state, [], 0)
     final_node = GraphNode(SolvedState, [], 0)
@@ -233,8 +241,9 @@ def bi_bfs(init_state: npt.NDArray) -> List:
                 nxt_node_path.append(act)
                 seen[turn][key] = nxt_node_path
                 if key in seen[not_turn]:
-                    print(f'{expanded} Nodes Expanded')
-                    print(f'{explored} Nodes Explored')
+                    if not silent:
+                        print(f'{expanded} Nodes Expanded')
+                        print(f'{explored} Nodes Explored')
                     frst: List[int] = []
                     scnd: List[int] = []
                     if turn == 0:
@@ -253,7 +262,7 @@ def bi_bfs(init_state: npt.NDArray) -> List:
             del cur_node
 
 
-def bi_a_star(init_state: npt.NDArray, init_location: npt.NDArray) -> List:
+def bi_a_star(init_state: npt.NDArray, init_location: npt.NDArray, silent: bool = False) -> List:
     h_start = bi_heuristic(init_location, 0)
     h_final = bi_heuristic(SolvedLocation, 1)
     first_node = GraphNodeAStar(h_start, False, init_state, init_location, [], 0, h_start)
@@ -285,8 +294,9 @@ def bi_a_star(init_state: npt.NDArray, init_location: npt.NDArray) -> List:
             node_seen.node = None
             explored += 1
             if key in seen[not_turn]:
-                print(f'{expanded} Nodes Expanded')
-                print(f'{explored} Nodes Explored')
+                if not silent:
+                    print(f'{expanded} Nodes Expanded')
+                    print(f'{explored} Nodes Explored')
                 frst: List[int] = []
                 scnd: List[int] = []
                 if turn == 0:
@@ -307,9 +317,6 @@ def bi_a_star(init_state: npt.NDArray, init_location: npt.NDArray) -> List:
                 if act == act_to_pass:
                     continue
                 nxt_node_state = next_state(cur_node.state, act)
-                nxt_node_location = next_location(cur_node.location, act)
-                nxt_node_path = copy.copy(cur_node.path)
-                nxt_node_path.append(act)
                 key = nxt_node_state.tobytes()
                 if key in seen[turn]:
                     node_seen: NodeSeen = seen[turn][key]
@@ -317,6 +324,9 @@ def bi_a_star(init_state: npt.NDArray, init_location: npt.NDArray) -> List:
                         # if node_seen.node is None:  # could be removed for production run
                         #     print("!!!Unexpected Error!!!")
                         #     quit()
+                        nxt_node_location = next_location(cur_node.location, act)
+                        nxt_node_path = copy.copy(cur_node.path)
+                        nxt_node_path.append(act)
                         node_seen.cost = nxt_node_cost
                         node_seen.node.removed = True
                         nxt_node = GraphNodeAStar(node_seen.node.heuristic + nxt_node_cost, False, nxt_node_state,
@@ -327,6 +337,9 @@ def bi_a_star(init_state: npt.NDArray, init_location: npt.NDArray) -> List:
                         continue
                     elif node_seen.cost == 0 or -node_seen.cost <= nxt_node_cost:
                         continue
+                nxt_node_location = next_location(cur_node.location, act)
+                nxt_node_path = copy.copy(cur_node.path)
+                nxt_node_path.append(act)
                 nxt_node_heuristic = bi_heuristic(nxt_node_location, turn)
                 nxt_node = GraphNodeAStar(nxt_node_heuristic + nxt_node_cost, False, nxt_node_state,
                                           nxt_node_location, nxt_node_path, nxt_node_cost, nxt_node_heuristic)
@@ -334,13 +347,14 @@ def bi_a_star(init_state: npt.NDArray, init_location: npt.NDArray) -> List:
                 fringe[turn].put(nxt_node)
                 expanded += 1
             del cur_node
-    print(f'{expanded} Nodes Expanded')
-    print(f'{explored} Nodes Explored')
-    print(f'No answers found')
+    if not silent:
+        print(f'{expanded} Nodes Expanded')
+        print(f'{explored} Nodes Explored')
+        print(f'No answers found')
     return []
 
 
-def solve(init_state, init_location, method):
+def solve(init_state, init_location, method, silent: bool = False):
     """
     Solves the given Rubik's cube using the selected search algorithm.
  
@@ -348,6 +362,7 @@ def solve(init_state, init_location, method):
         init_state (numpy.array): Initial state of the Rubik's cube.
         init_location (numpy.array): Initial location of the little cubes.
         method (str): Name of the search algorithm.
+        silent (bool): whether to print state count
  
     Returns:
         list: The sequence of actions needed to solve the Rubik's cube.
@@ -363,17 +378,17 @@ def solve(init_state, init_location, method):
         return list(np.random.randint(1, 12 + 1, 10))
 
     elif method == 'IDS-DFS':
-        return ids_dfs(init_state)
+        return ids_dfs(init_state, silent)
 
     elif method == 'A*':
-        return a_star(init_state, init_location)
+        return a_star(init_state, init_location, silent)
 
     elif method == 'BiBFS':
-        return bi_bfs(init_state)
+        return bi_bfs(init_state, silent)
 
     elif method == "BiA*":
         fill_heuristic_to_scrambled(init_location)
-        return bi_a_star(init_state, init_location)
+        return bi_a_star(init_state, init_location, silent)
 
     else:
         return []
